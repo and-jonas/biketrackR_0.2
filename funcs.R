@@ -1,29 +1,7 @@
-
+.libPaths("C:/Users/anjonas/RLibs")
 library(raster)
 library(scales)
 library(rdrop2)
-outputDir <- "responses"
-
-saveData <- function(data) {
-  data <- t(data)
-  # Create a unique file name
-  fileName <- sprintf("%s_%s.csv", as.integer(Sys.time()), digest::digest(data))
-  # Write the data to a temporary file locally
-  filePath <- file.path(tempdir(), fileName)
-  write.csv(data, filePath, row.names = FALSE, quote = TRUE)
-  # Upload the file to Dropbox
-  drop_upload(filePath, path = outputDir)
-}
-
-loadData <- function() {
-  # Read all the files into a list
-  filesInfo <- drop_dir(outputDir)
-  filePaths <- filesInfo$path_display
-  data <- lapply(filePaths, drop_read_csv, stringsAsFactors = FALSE)
-  # Concatenate all data together into one data.frame
-  data <- do.call(rbind, data)
-  data
-}
 
 # helper function to add previous positions
 shift.vec <- function(vec, shift){
@@ -83,6 +61,9 @@ get_geodata <- function(track){
   #data types
   geo_df$ele <- as.numeric(geo_df$ele)
   geo_df$ele.p1 <- as.numeric(geo_df$ele.p1)
+  
+  return(geo_df)
+  
 }
 
 # create a height profile
