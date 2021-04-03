@@ -1,5 +1,5 @@
 rm(list = ls())
-# .libPaths("C:/Users/anjonas/RLibs")
+.libPaths("C:/Users/anjonas/RLibs")
 library(shiny)
 library(shinyFiles)
 library(leaflet)
@@ -9,7 +9,7 @@ library(shinyWidgets)
 library(tidyverse)
 library(stringr)
 options(shiny.maxRequestSize = 30*1024^2)
-# setwd("C:/Users/anjonas/RProjects/biketrackR_0.2")
+setwd("C:/Users/anjonas/RProjects/biketrackR_0.2")
 source("funcs.R")
 library(rdrop2)
 library(httpuv)
@@ -121,7 +121,7 @@ server <- function(input, output, session) {
     filePaths <- filesInfo$path_display
     if(!is.null(filePaths)){
       print("Loading Data from Remote Repository. Please wait...")
-      predat <- drop_read_csv("Appdata.csv")
+      predat <- drop_read_csv(filePaths)
       predat <- predat %>% dplyr::select(-X) %>% 
         mutate(date = as.Date(date, "%Y-%m-%d"))
       pre_dates <- unique(predat$date)
@@ -138,7 +138,7 @@ server <- function(input, output, session) {
       FILE <- FILE[date_load_idx]
       FILENAME <- FILENAME[date_load_idx]
     }
-
+    
     # if not all data is available in pre-processed form already on remote repository, 
     # load raw .gpx files from disk and pre-process
     # export the updated pre-processed data to remote repository
@@ -172,6 +172,9 @@ server <- function(input, output, session) {
         final_dist1 <- max(geodat[[ids[1]]]$dist_tot, na.rm = TRUE)
         # add distance of first part to the distances in the second part
         geodat[[ids[2]]]$dist_tot <- geodat[[ids[2]]]$dist_tot + final_dist1
+        # add grouping variable for the two separate parts to enable disjointed lines plotting
+        geodat[[ids[1]]]$part = "A"
+        geodat[[ids[2]]]$part = "B"
         # bind elements
         geodat[[ids[1]]] <- rbind(geodat[[ids[1]]], geodat[[ids[2]]])
       }
@@ -185,7 +188,6 @@ server <- function(input, output, session) {
       # bind rows of previously and newly loaded data
       alldat <- bind_rows(predat, alldat)
       # update processed data on repository
-      str(alldat)
       write.csv(alldat, 'AppData.csv', col.names = FALSE)
       drop_upload('AppData.csv', path = 'AppData')
     }
@@ -252,10 +254,20 @@ server <- function(input, output, session) {
     if (length(input$select) > 0){
       for (i in 1:length(input$select)){
         df <- alldat[alldat$date == as.Date(input$select[i], format = "%Y-%m-%d"), 
-                     c("lat", "lon")]
+                     c("part", "lat", "lon")]
+        # separate dfs for separate parts of a tour
+        # required to plot separate polylines
+        dfA <- df[df$part == "A", c("part", "lat", "lon")]
+        dfB <- df[df$part == "B", c("part", "lat", "lon")]
         mymap <- mymap %>%
           addProviderTiles(provider = providers$Stamen.Terrain, layerId = 0) %>%
-          addPolylines(data = df, 
+          addPolylines(data = dfA, 
+                       lng = ~lon, 
+                       lat = ~lat,
+                       col = colors[i],
+                       layerId = i,
+                       group = "base") %>% 
+          addPolylines(data = dfB, 
                        lng = ~lon, 
                        lat = ~lat,
                        col = colors[i],
@@ -281,6 +293,9 @@ server <- function(input, output, session) {
     dist <- max(df$dist_tot, na.rm = T)
     up <- round(max(df$cum.uphill, na.rm = T), 0)
     highest <- round(max(as.numeric(df$ele), na.rm = T), 0)
+    # # graph
+    # p <- profilplot(df)
+    # plot(p)
     # Popup on click
     leafletProxy("mymap") %>% 
       addPopups(
@@ -298,6 +313,8 @@ server <- function(input, output, session) {
                    group = "selected",
                    dashArray = 3, 
                    color = "red", weight = 5, opacity = 1)
+    # %>% 
+    #   addPolygons(data = df, popup = popupGraph(p, type = "svg")) 
   })
   
   output$Streckenprofil <- renderPlot({

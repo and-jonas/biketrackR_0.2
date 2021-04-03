@@ -62,6 +62,9 @@ get_geodata <- function(track){
   geo_df$ele <- as.numeric(geo_df$ele)
   geo_df$ele.p1 <- as.numeric(geo_df$ele.p1)
   
+  # add a grouping variable
+  geo_df$part <- "A"
+  
   return(geo_df)
   
 }
