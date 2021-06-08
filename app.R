@@ -9,13 +9,19 @@ library(shinyWidgets)
 library(tidyverse)
 library(stringr)
 options(shiny.maxRequestSize = 30*1024^2)
-setwd("C:/Users/anjonas/RProjects/biketrackR_0.2")
+setwd("C:/Users/anjonas/RProjects/biketrackR")
 source("funcs.R")
 library(rdrop2)
 library(httpuv)
-drop_auth()
-drop_acc() %>% data.frame()
-drop_dir()
+# drop_auth()
+# drop_acc() %>% data.frame()
+# drop_dir()
+
+token <- drop_auth()
+saveRDS(token, "droptoken.rds")
+token <- readRDS("droptoken.rds")
+drop_acc(dtoken = token) %>% data.frame()
+drop_dir(dtoken = token)
 
 # Tweaks to the checkboxgroupinput
 tweaks <- 
@@ -117,11 +123,11 @@ server <- function(input, output, session) {
     # load GPS tracks
     
     # get prepared data from remote repository
-    filesInfo <- drop_dir("AppData")
+    filesInfo <- drop_dir(dtoken = token, "AppData")
     filePaths <- filesInfo$path_display
     if(!is.null(filePaths)){
       print("Loading Data from Remote Repository. Please wait...")
-      predat <- drop_read_csv(filePaths)
+      predat <- drop_read_csv(dtoken = token, filePaths)
       predat <- predat %>% dplyr::select(-X) %>% 
         mutate(date = as.Date(date, "%Y-%m-%d"))
       pre_dates <- unique(predat$date)
@@ -189,7 +195,7 @@ server <- function(input, output, session) {
       alldat <- bind_rows(predat, alldat)
       # update processed data on repository
       write.csv(alldat, 'AppData.csv', col.names = FALSE)
-      drop_upload('AppData.csv', path = 'AppData')
+      drop_upload(dtoken = token, 'AppData.csv', path = 'AppData')
     }
     else{
       # if all dates already represented in data from remote,

@@ -1,7 +1,6 @@
-.libPaths("C:/Users/anjonas/RLibs")
+
 library(raster)
 library(scales)
-library(rdrop2)
 
 # helper function to add previous positions
 shift.vec <- function(vec, shift){

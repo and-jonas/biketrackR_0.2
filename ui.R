@@ -1,12 +1,4 @@
-# ================================================================================================= -
-# Shiny App for interactive display of GPS data
-# Author: Jonas Anderegg
-# ================================================================================================= -
-
 rm(list = ls())
-
-.libPaths("C:/Users/anjonas/RLibs")
-
 library(shiny)
 library(shinyFiles)
 library(leaflet)
@@ -17,14 +9,11 @@ library(tidyverse)
 library(stringr)
 options(shiny.maxRequestSize = 30*1024^2)
 source("funcs.R")
-
 library(rdrop2)
 library(httpuv)
 drop_auth()
 drop_acc() %>% data.frame()
 drop_dir()
-
-# ================================================================================================= -
 
 # Tweaks to the checkboxgroupinput
 tweaks <- 
